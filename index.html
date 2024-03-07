@@ -32,6 +32,9 @@
     .food {
       background-color: red;
     }
+    .wall {
+      background-color: black;
+    }
   </style>
 </head>
 <body>
@@ -46,9 +49,12 @@
     const cols = 20;
     let snake = [{x: 9, y: 10}]; // Initial position of the snake
     let food = {x: Math.floor(Math.random() * cols), y: Math.floor(Math.random() * rows)}; // Initial position of the food
+    let walls = []; // Array to store active walls
     let score = 0;
     let highestScore = localStorage.getItem('highestScore') || 0;
     let direction;
+    let wallSpawnInterval;
+    let snakeSpeed = 100; // Initial snake speed
 
     scoreDisplay.textContent = `Score: ${score} | Highest Score: ${highestScore}`;
 
@@ -66,17 +72,17 @@
       container.appendChild(row);
     }
 
-    // Event listener for arrow key presses
+    // Event listener for arrow key and WASD presses
     document.addEventListener('keydown', directionHandler);
 
     function directionHandler(event) {
-      if (event.keyCode === 37 && direction !== 'RIGHT') {
+      if ((event.keyCode === 37 || event.key === 'a') && direction !== 'RIGHT') {
         direction = 'LEFT';
-      } else if (event.keyCode === 38 && direction !== 'DOWN') {
+      } else if ((event.keyCode === 38 || event.key === 'w') && direction !== 'DOWN') {
         direction = 'UP';
-      } else if (event.keyCode === 39 && direction !== 'LEFT') {
+      } else if ((event.keyCode === 39 || event.key === 'd') && direction !== 'LEFT') {
         direction = 'RIGHT';
-      } else if (event.keyCode === 40 && direction !== 'UP') {
+      } else if ((event.keyCode === 40 || event.key === 's') && direction !== 'UP') {
         direction = 'DOWN';
       }
     }
@@ -86,7 +92,7 @@
       // Clear grid
       for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
-          grid[i][j].classList.remove('snake', 'food');
+          grid[i][j].classList.remove('snake', 'food', 'wall');
         }
       }
 
@@ -97,6 +103,11 @@
 
       // Draw food
       grid[food.y][food.x].classList.add('food');
+
+      // Draw walls
+      walls.forEach((wall) => {
+        grid[wall.y][wall.x].classList.add('wall');
+      });
 
       // Move snake
       let snakeX = snake[0].x;
@@ -119,6 +130,14 @@
         snake.pop();
       }
 
+      // If snake hits the wall
+      if (collision({x: snakeX, y: snakeY}, walls)) {
+        clearInterval(game);
+        clearInterval(wallSpawnInterval);
+        alert('Game Over! Your score: ' + score);
+        location.reload();
+      }
+
       // Create new head of the snake
       const newHead = {
         x: snakeX,
@@ -132,6 +151,7 @@
         collision(newHead, snake)
       ) {
         clearInterval(game);
+        clearInterval(wallSpawnInterval);
         alert('Game Over! Your score: ' + score);
         location.reload();
       }
@@ -147,8 +167,27 @@
       });
     }
 
+    // Function to spawn wall
+    function spawnWall() {
+      walls = []; // Clear existing walls
+      for (let i = 0; i < 5; i++) {
+        let wall;
+        do {
+          wall = {x: Math.floor(Math.random() * cols), y: Math.floor(Math.random() * rows)};
+        } while (collision(wall, walls)); // Ensure unique wall positions
+        walls.push(wall);
+      }
+    }
+
+    // Despawn walls after a certain time
+    function moveWalls() {
+      spawnWall();
+      setTimeout(moveWalls, 5000); // Walls respawn after 5 seconds
+    }
+
     // Game loop
     let game = setInterval(draw, 100);
+    wallSpawnInterval = setInterval(moveWalls, 5000); // Change spawn time here
   </script>
 </body>
 </html>
